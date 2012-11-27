@@ -1,20 +1,19 @@
-iD.Map = function(elem, connection) {
+iD.Map = function(elem) {
 
     var map = {},
         dimensions = [],
         dispatch = d3.dispatch('move', 'update'),
         history = iD.History(),
-        inspector = iD.Inspector(),
         parent = d3.select(elem),
         selection = null,
         translateStart,
         apiTilesLoaded = {},
         projection = d3.geo.mercator()
-            .scale(512).translate([512, 512]),
-        zoom = d3.behavior.zoom()
+            .scale(256).translate([256, 256]),
+        zoombehavior = d3.behavior.zoom()
             .translate(projection.translate())
             .scale(projection.scale())
-            .scaleExtent([256, 134217728])
+            .scaleExtent([2048, 546872000])
             .on('zoom', zoomPan),
         dragbehavior = d3.behavior.drag()
             .origin(function(entity) {
@@ -336,20 +335,8 @@ iD.Map = function(elem, connection) {
 
         return coords.filter(tileAlreadyLoaded).map(apiExtentBox);
     }
-
-    function apiRequestExtent(extent) {
-        connection.bboxFromAPI(extent, function (result) {
-            if (result instanceof Error) {
-                // TODO: handle
-            } else {
-                history.merge(result);
-                drawVector();
-            }
-        });
-    }
-
     var download = _.debounce(function() {
-        apiTiles().map(apiRequestExtent);
+        apiTiles();
     }, 1000);
 
     function deselectClick() {
@@ -371,20 +358,6 @@ iD.Map = function(elem, connection) {
             .datum(history.graph().fetch(entity.id)).call(inspector);
         redraw();
     }
-
-    inspector.on('change', function(d, tags) {
-        map.perform(iD.actions.changeTags(d, tags));
-    });
-
-    inspector.on('remove', function(d) {
-        map.perform(iD.actions.remove(d));
-        hideInspector();
-    });
-
-    inspector.on('close', function(d) {
-        deselectClick();
-        hideInspector();
-    });
 
     function zoomPan() {
         var fast = (d3.event.scale === projection.scale());
@@ -431,16 +404,10 @@ iD.Map = function(elem, connection) {
     });
 
     function redraw(only) {
-        if (!only) {
-            dispatch.move(map);
-            tileclient.redraw();
-        }
-        if (getZoom() > 16) {
-            download();
-            drawVector(only);
-        } else {
-            hideVector();
-        }
+        dispatch.move(map);
+        tileclient.redraw();
+        download();
+        drawVector(only);
     }
 
     function update() {
@@ -489,6 +456,13 @@ iD.Map = function(elem, connection) {
 
     function setZoom(z) {
         // summary:	Redraw the map at a new zoom level.
+    	if (z > 22.0) {
+    		z = 22.0;
+    	}
+
+    	if (z < 4.0) {
+    		z = 4.0;
+    	}
         var scale = 256 * Math.pow(2, z - 1);
         var center = pxCenter();
         var l = pointLocation(center);
@@ -548,8 +522,6 @@ iD.Map = function(elem, connection) {
     map.surface = surface;
 
     map.perform = perform;
-    map.undo = undo;
-    map.redo = redo;
 
     map.redraw = redraw;
 
