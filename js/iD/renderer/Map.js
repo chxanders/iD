@@ -10,7 +10,7 @@ iD.Map = function(elem) {
         apiTilesLoaded = {},
         projection = d3.geo.mercator()
             .scale(256).translate([256, 256]),
-        zoombehavior = d3.behavior.zoom()
+        zoom = d3.behavior.zoom()
             .translate(projection.translate())
             .scale(projection.scale())
             .scaleExtent([2048, 546872000])

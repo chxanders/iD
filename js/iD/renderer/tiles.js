@@ -5,7 +5,7 @@ iD.Tiles = function(selection, projection) {
 
     // derive the url of a 'quadkey' style tile from a coordinate object
     function tileUrl(coord) {
-        return  '/pants/render/' + coord[2] + '/' + coord[0] + '/' + coord[1] + '.png';
+        return  '/pants/tile/' + coord[2] + '/' + coord[0] + '/' + coord[1] + '.png';
     }
 
 
