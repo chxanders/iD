@@ -1,4 +1,6 @@
 iD.Entity = function(a, b) {
+	console.log('Entity ' + a);
+	console.log('Entity ' + b);
     if (!(this instanceof iD.Entity)) return new iD.Entity(a, b);
 
     _.extend(this, {tags: {}}, a, b);
@@ -6,7 +8,7 @@ iD.Entity = function(a, b) {
     if (b) {
         this._updated = true;
     }
-
+    this._updated = true;
     if (!this.id) {
         this.id = iD.Util.id(this.type);
         this._updated = true;

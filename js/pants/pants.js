@@ -68,6 +68,7 @@ pants.LoadXml = function() {
 		pants.curentFilename = pants.newFilename;
 console.log('his ' + pants.map.history.graph());
 pants.map.setCenter(pants.map.getCenter());
+console.log(iD.format.XML.osmChange('pants', 1, pants.map.history.changes()));
 	};
 };
 
@@ -75,8 +76,11 @@ pants.SaveXml = function() {
 	pants.jsddm_close();
 	var fname = pants.newFileName ? pants.newFileName : 'pants.xml',
 		request = new FormData();
+console.log(iD.format.XML.osmChange('pants', 1, pants.map.history.changes()));	
 	request.append('filename', fname);
-	request.append('uploadfile', new Blob(['<a id="a"><b id="b">hey!</b></a>'], { type: "text/xml"}));
+	request.append('uploadfile', 
+					new Blob([iD.format.XML.osmChange('pants', 1, pants.map.history.changes())], 
+					{ type: "text/xml"}));
 
 	$.ajax({
         type: 'POST',

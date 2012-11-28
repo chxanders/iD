@@ -28,7 +28,7 @@ iD.Graph = function(entities, annotation) {
 
 iD.Graph.prototype = {
     entity: function(id) {
-        return this.entities[id];
+        return [this.entities[id]];
     },
 
     parents: function(id) {
@@ -104,5 +104,11 @@ iD.Graph.prototype = {
 
     creations: function() {
         return _.filter(this.entities, function(entity) { return entity.created(); });
-    }
+    },
+    
+    all:  function() {
+        return _.filter(this.entities, function() {
+        	console.log('checking');
+        	return true; });
+    },
 };

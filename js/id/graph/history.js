@@ -66,7 +66,12 @@ iD.History.prototype = {
         return this.stack[this.index].creations();
     },
 
+    all: function() {
+        return this.stack[this.index].creations();
+    },
+    
     'delete': function() {
+    	console.log('deete ');
         return _.difference(
             _.pluck(this.stack[0].entities, 'id'),
             _.pluck(this.stack[this.index].entities, 'id')
@@ -78,8 +83,8 @@ iD.History.prototype = {
     changes: function() {
         return {
             modify: this.modify(),
-            create: this.create(),
+            create: this.all(),
             'delete': this['delete']()
         };
-    }
+    },
 };
