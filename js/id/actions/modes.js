@@ -55,17 +55,21 @@ iD.modes.AddPlace = {
 iD.modes.AddRoad = {
     title: "+ Road",
     way: function() {
-        return iD.Way({tags: {highway: 'residential'}});
+        return iD.Way({
+            tags: {
+                highway: 'residential'
+            }
+        });
     },
     enter: function() {
+        this.map.dblclickEnable(false);
         var surface = this.map.surface;
         var teaser = surface.selectAll('g#temp-g')
             .append('g').attr('id', 'addroad');
 
         teaser.append('circle')
-            .attr('class', 'handle')
-            .style('pointer-events', 'none')
-            .attr('r', 3);
+            .attr({ 'class': 'handle', r: 3 })
+            .style('pointer-events', 'none');
 
         surface.on('mousemove.addroad', function() {
             teaser.attr('transform', function() {
@@ -74,10 +78,10 @@ iD.modes.AddRoad = {
             });
         });
 
-        surface.on('click.addroad', function() {
-            var t = d3.select(d3.event.target);
-            var node;
-            var way = this.way();
+        function addRoad() {
+            var t = d3.select(d3.event.target),
+                node,
+                way = this.way();
 
             // connect a way to an existing way
             if (t.data() && t.data()[0] && t.data()[0].type === 'node') {
@@ -87,17 +91,21 @@ iD.modes.AddRoad = {
                     d3.mouse(surface.node())));
             }
 
+            this.map.perform(iD.actions.startWay(way));
             way.nodes.push(node.id);
-            this.map.perform(iD.actions.changeWayNodes(way, node));
+            this.map.perform(iD.actions.addWayNode(way, node));
             this.map.selectClick(way);
-            this.controller.enter(iD.modes.DrawRoad(way));
-        }.bind(this));
+            this.controller.enter(iD.modes.DrawRoad(way.id));
+        }
+
+        surface.on('click.addroad', addRoad.bind(this));
 
         d3.select(document).on('keydown.addroad', function() {
             if (d3.event.keyCode === 27) this.exit();
         }.bind(this));
     },
     exit: function() {
+        this.map.dblclickEnable(true);
         this.map.surface.on('click.addroad', null);
         this.map.surface.on('mousemove.addroad', null);
         d3.select(document).on('keydown.addroad', null);
@@ -105,61 +113,66 @@ iD.modes.AddRoad = {
     }
 };
 
-iD.modes.DrawRoad = function(way) {
+iD.modes.DrawRoad = function(way_id) {
     return {
         enter: function() {
-            var surface = this.map.surface;
-            var lastNode = this.map.history.graph().entity(way.nodes[way.nodes.length - 1]);
-            this.nextnode = iD.modes._node([lastNode.lon, lastNode.lat]);
-            way.nodes.push(this.nextnode.id);
-            this.map.perform(iD.actions.changeWayNodes(way, this.nextnode));
+            this.map.dblclickEnable(false);
+            var surface = this.map.surface,
+
+            nextnode = iD.modes._node([NaN, NaN]);
+            var nextnode_id = nextnode.id;
+
+            var way = this.map.history.graph().entity(way_id);
+            var lastnode_id = _.last(way.nodes);
+            way.nodes.push(nextnode_id);
+            this.map.perform(iD.actions.addWayNode(way, nextnode));
 
             surface.on('mousemove.drawroad', function() {
                 var ll = this.map.projection.invert(d3.mouse(surface.node()));
-                this.map.history.replace(iD.actions.move(this.nextnode, ll));
-                this.map.update();
+                var way = this.map.history.graph().entity(way_id);
+                var node = iD.Entity(this.map.history.graph().entity(nextnode_id), {
+                    lon: ll[0],
+                    lat: ll[1]
+                });
+                this.map.history.replace(iD.actions.addWayNode(way, node));
+                var only = iD.Util.trueObj([way.id].concat(_.pluck(way.nodes, 'id')));
+                this.map.redraw(only);
             }.bind(this));
 
-            surface.on('click.drawroad', function() {
-                if (this._doubleTime) {
-                    window.clearTimeout(this._doubleTime);
-                    this._doubleTime = null;
-                } else {
-                    // forgive me
-                    var that = this;
-                    this._doubleTime = window.setTimeout(function(e) {
-                        return function() {
-                            d3.event = e;
-                            var t = d3.select(d3.event.target);
-                            d3.event.stopPropagation();
-                            // connect a way to an existing way
-                            if (t.data() && t.data()[0] && t.data()[0].type === 'node') {
-                                node = t.data()[0];
-                            } else {
-                                node = iD.modes._node(that.map.projection.invert(
-                                    d3.mouse(surface.node())));
-                            }
-                            way.nodes.pop();
-                            way.nodes.push(node.id);
-                            that.map.perform(iD.actions.changeWayNodes(way, node));
-                            way.nodes = way.nodes.slice();
-                            that.controller.enter(iD.modes.DrawRoad(way));
-                        };
-                    }(_.clone(d3.event)), 150);
-                }
-            }.bind(this));
-
-            surface.on('dblclick.drawroad', function() {
+            function drawRoad() {
+                var t = d3.select(d3.event.target);
                 d3.event.stopPropagation();
-                this.exit();
-            }.bind(this));
+                if (t.data() && t.data()[0] && t.data()[0].type === 'node') {
+                    if (t.data()[0].id == lastnode_id) {
+                        var l = this.map.history.graph().entity(way.nodes.pop());
+                        this.map.perform(iD.actions.removeWayNode(way, l));
+                        // End by clicking on own tail
+                        return this.exit();
+                    } else {
+                        // connect a way to an existing way
+                        node = t.data()[0];
+                    }
+                } else {
+                    node = iD.modes._node(this.map.projection.invert(
+                        d3.mouse(surface.node())));
+                }
+                way.nodes.pop();
+                way.nodes.push(node.id);
+                this.map.perform(iD.actions.addWayNode(way, node));
+                way.nodes = way.nodes.slice();
+                this.controller.enter(iD.modes.DrawRoad(way_id));
+            }
+
+            surface.on('click.drawroad', drawRoad.bind(this));
         },
         exit: function() {
             this.map.surface.on('mousemove.drawroad', null);
             this.map.surface.on('click.drawroad', null);
-            this.map.surface.on('dblclick.drawroad', null);
             d3.select(document).on('.drawroad', null);
             d3.selectAll('#drawroad').remove();
+            window.setTimeout(function() {
+                this.map.dblclickEnable(true);
+            }.bind(this), 1000);
         }
     };
 };
@@ -167,7 +180,11 @@ iD.modes.DrawRoad = function(way) {
 iD.modes.AddArea = {
     title: "+ Area",
     way: function() {
-        return iD.Way({tags: {building: 'yes'}});
+        return iD.Way({
+            tags: {
+                building: 'yes'
+            }
+        });
     },
     enter: function() {
         var surface = this.map.surface;

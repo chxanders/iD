@@ -1,4 +1,3 @@
-// a minimal map tile client, to be turned on and off etc.
 iD.Tiles = function(selection, projection) {
     var t = {},
         tile = d3.geo.tile();
@@ -7,7 +6,6 @@ iD.Tiles = function(selection, projection) {
     function tileUrl(coord) {
         return  '/pants/tile/' + coord[2] + '/' + coord[0] + '/' + coord[1] + '.png';
     }
-
 
     // derive the tiles onscreen, remove those offscreen and position tiles
     // correctly for the currentstate of `projection`

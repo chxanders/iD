@@ -15,6 +15,7 @@ iD.Map = function(elem) {
             .scaleExtent([2047, 536870913])
             .on('zoom', zoomPan),
         only,
+        dblclickEnabled = true,
         dragbehavior = d3.behavior.drag()
             .origin(function(entity) {
                 var p = projection(ll2a(entity));
@@ -200,12 +201,13 @@ iD.Map = function(elem) {
         marker.append('circle')
             .attr({ r: 10, cx: 8, cy: 8 });
         marker.append('image')
-            .attr({ width: 16, height: 16, 'xlink:href': iD.Style.markerimage });
+            .attr({ width: 16, height: 16 });
         markers.attr('transform', function(d) {
                 var pt = projection([d.lon, d.lat]);
                 return 'translate(' + [~~pt[0], ~~pt[1]] + ') translate(-8, -8)';
             })
             .classed('active', classActive);
+        markers.select('image').attr('xlink:href', iD.Style.markerimage);
     }
 
     function drawStrokes(ways, filter) {
@@ -359,6 +361,9 @@ iD.Map = function(elem) {
     }
 
     function zoomPan() {
+        if (d3.event && d3.event.sourceEvent.type === 'dblclick') {
+            if (!dblclickEnabled) return;
+        }
         var fast = (d3.event.scale === projection.scale());
         projection
             .translate(d3.event.translate)
@@ -393,7 +398,6 @@ iD.Map = function(elem) {
     }
 
     function update() {
-        map.update();
         redraw();
     }
 
@@ -410,6 +414,12 @@ iD.Map = function(elem) {
     function redo() {
         map.history.redo();
         update();
+    }
+
+    function dblclickEnable(_) {
+        if (!arguments.length) return dblclickEnabled;
+        dblclickEnabled = _;
+        return map;
     }
 
     function getExtent() {
@@ -506,6 +516,7 @@ iD.Map = function(elem) {
     map.redraw = redraw;
 
     map.flush = flush;
+    map.dblclickEnable = dblclickEnable;
 
     setSize([parent.node().offsetWidth, parent.node().offsetHeight]);
     redraw();
