@@ -67,6 +67,7 @@ iD.Graph.prototype = {
     // get all objects that intersect an extent.
     intersects: function(extent) {
         var items = [];
+console.log('num ent ' + this.entities);        
         for (var i in this.entities) {
             var entity = this.entities[i];
             if (entity.type === 'node' && this.nodeIntersect(entity, extent)) {

@@ -65,7 +65,7 @@ var iD = function(container) {
         .on('click', map.zoomOut);
     
     map.on('update', function() {
-    	console.log('update');
+    	map.redraw();
     });
 
     window.onresize = function() {
@@ -89,7 +89,6 @@ var iD = function(container) {
 
     var hash = iD.Hash().map(map);
     if (!hash.hadHash) map.setZoom(15).setCenter([-0.005, 51.46]);
-
 
     pants.menuInit(container, pantsjsddm, map);
 };

@@ -1,4 +1,4 @@
-iD.format.XML = {
+iD.XML = {
     mapping: function(entity) {
         if (iD.format.XML.mappings[entity.type]) {
             return iD.format.XML.mappings[entity.type](entity);
