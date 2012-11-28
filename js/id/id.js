@@ -73,7 +73,6 @@ var iD = function(container) {
     };
 
     d3.select(document).on('keydown', function() {
-        // console.log(d3.event);
         // cmd-z
         if (d3.event.which === 90 && d3.event.metaKey) {
             map.undo();
@@ -82,9 +81,6 @@ var iD = function(container) {
         if (d3.event.which === 90 && d3.event.metaKey && d3.event.shiftKey) {
             map.redo();
         }
-        // if (d3.event.which === 80) controller.enter(iD.modes.AddPlace); // p
-        // if (d3.event.which === 82) controller.enter(iD.modes.AddRoad); // r
-        // if (d3.event.which === 65) controller.enter(iD.modes.AddArea); // a
     });
 
     var hash = iD.Hash().map(map);

@@ -41,14 +41,14 @@ pants.OnFrameLoad = function() {
 	pants.DoOnFrameLoad = function() {};	
 };
 
-pants.LoadOsm = function() {
+pants.LoadXml = function() {
 	pants.newFileName = '';
 	pants.Dialog(function() {
-	 				document.getElementById('load_osm').submit();
+	 				document.getElementById('load_xml').submit();
  				},
- 				'<form id="load_osm" action="/pants/upload/upload" enctype="multipart/form-data" method="post" target="hiddenFrame">'
-				 +'<input id="uploadfile" name="uploadfile" type="file" />' 				
-				 +'<input id="filename" name="filename" type="hidden" /></form>​',
+ 				'<form id="load_xml" action="/pants/upload/upload" enctype="multipart/form-data" method="post" target="hiddenFrame">'
+				 +'<input id="filename" name="filename" type="hidden" />​'
+				 +'<input id="uploadfile" name="uploadfile" type="file" /></form>',
 				 '');
 
 	$('#uploadfile').change(function() {
@@ -69,6 +69,30 @@ pants.LoadOsm = function() {
 console.log('his ' + pants.map.history.graph());
 pants.map.setCenter(pants.map.getCenter());
 	};
+};
+
+pants.SaveXml = function() {
+	pants.jsddm_close();
+	var fname = pants.newFileName ? pants.newFileName : 'pants.xml',
+		request = new FormData();
+	request.append('filename', fname);
+	request.append('uploadfile', new Blob(['<a id="a"><b id="b">hey!</b></a>'], { type: "text/xml"}));
+
+	$.ajax({
+        type: 'POST',
+        url: '/pants/upload/upload',
+        cache: false,
+        contentType : false,
+        processData: false,        
+        data: request,
+        success: function(data) {
+		    $.fileDownload('/pants/upload/attach/' + fname);
+		  },
+		  error: function() {
+        	  alert('Unable to save file. Get some help.');
+        	}
+		});
+
 };
 
 
@@ -194,15 +218,14 @@ pants.parseXml = function(path) {
     return parse(path);
 };
 
-// For convenience when merging from iD
 pants.menuInit = function(container, pantsjsddm, m) {
 	pants.map = m;
     pantsjsddm.append('li').append('a')
-		.attr('href', 'javascript:pants.LoadOsm()')
+		.attr('href', 'javascript:pants.LoadXml()')
 		.text('Load XML');
 
     pantsjsddm.append('li').append('a')
-    	.attr('href', 'javascript:pants.SaveOsm()')
+    	.attr('href', 'javascript:pants.SaveXml()')
     	.text('Save XML');
 
     pantsjsddm.append('li').append('a')

@@ -8,21 +8,25 @@ iD.Util.id = function(counter) {
     return counter[0] + (--iD.Util._counters[counter]);
 };
 
+iD.Util.trueObj = function(arr) {
+    var o = {};
+    for (var i = 0, l = arr.length; i < l; i++) o[arr[i]] = true;
+    return o;
+};
+
 iD.Util.friendlyName = function(entity) {
-    // summary:		Rough-and-ready function to return a human-friendly name
-    //				for the object. Really just a placeholder for something better.
-    // returns:		A string such as 'river' or 'Fred's House'.
+    // Generate a string such as 'river' or 'Fred's House' for an entity.
     if (!Object.keys(entity.tags).length) { return ''; }
 
-    var mainkeys = ['highway','amenity','railway','waterway'];
-    var n = [];
+    var mainkeys = ['highway','amenity','railway','waterway'],
+        n = [];
 
     if (entity.tags.name) n.push(entity.tags.name);
     if (entity.tags.ref) n.push(entity.tags.ref);
 
     if (!n.length) {
         for (var k in entity.tags) {
-            if (mainkeys[k]) {
+            if (mainkeys.indexOf(k) !== -1) {
                 n.push(entity.tags[k]);
                 break;
             }

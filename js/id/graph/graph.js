@@ -31,6 +31,14 @@ iD.Graph.prototype = {
         return this.entities[id];
     },
 
+    parents: function(id) {
+        // This is slow and a bad hack.
+        return _.filter(this.entities, function(e) {
+            if (e.type !== 'way') return false;
+            return e.nodes.indexOf(id) !== -1;
+        });
+    },
+
     merge: function(graph) {
         var entities = _.clone(this.entities);
         _.defaults(entities, graph.entities);
@@ -67,7 +75,6 @@ iD.Graph.prototype = {
     // get all objects that intersect an extent.
     intersects: function(extent) {
         var items = [];
-console.log('num ent ' + this.entities);        
         for (var i in this.entities) {
             var entity = this.entities[i];
             if (entity.type === 'node' && this.nodeIntersect(entity, extent)) {

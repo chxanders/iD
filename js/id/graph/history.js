@@ -5,8 +5,8 @@ iD.History = function() {
 };
 
 iD.History.prototype = {
+
     graph: function() {
-   	
         return this.stack[this.index];
     },
 
@@ -24,7 +24,6 @@ iD.History.prototype = {
 
     replace: function(action) {
         // assert(this.index == this.stack.length - 1)
-console.log('replace');    	
         this.stack[this.index] = action(this.graph());
     },
 
@@ -58,8 +57,9 @@ console.log('replace');
         }
     },
 
+    // generate reports of changes for changesets to use
     modify: function() {
-        return this.stack[this.index].creations();
+        return this.stack[this.index].modifications();
     },
 
     create: function() {
