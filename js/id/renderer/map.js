@@ -3,12 +3,13 @@ iD.Map = function(elem) {
     var map = { history: iD.History() },
         dimensions = [],
         dispatch = d3.dispatch('move', 'update'),
+        inspector = iD.Inspector(),
         parent = d3.select(elem),
         selection = null,
         translateStart,
         apiTilesLoaded = {},
         projection = d3.geo.mercator()
-            .scale(256).translate([256, 256]),
+            .scale(512).translate([512, 512]),
         zoom = d3.behavior.zoom()
             .translate(projection.translate())
             .scale(projection.scale())
@@ -74,7 +75,6 @@ iD.Map = function(elem) {
         class_stroke = iD.Style.styleClasses('stroke'),
         class_fill = iD.Style.styleClasses('stroke'),
         class_area = iD.Style.styleClasses('area'),
-        class_marker = iD.Style.styleClasses('marker'),
         class_casing = iD.Style.styleClasses('casing'),
         // For one-way roads, find the length of a triangle
         alength = (function() {
@@ -103,6 +103,9 @@ iD.Map = function(elem) {
     function a2ll(o) { return { lon: o[0], lat: o[1] }; }
     function roundCoords(c) { return [Math.floor(c[0]), Math.floor(c[1])]; }
 
+    function hideInspector() {
+        d3.select('.inspector-wrap').style('display', 'none');
+    }
 
     function classActive(d) { return d.id === selection; }
     function nameHoverIn(d) { messages.text(d.tags.name || '(unknown)'); }
@@ -131,12 +134,16 @@ iD.Map = function(elem) {
         var filter = only ?
             function(d) { return only[d.id]; } : function() { return true; };
 
+        function isArea(way) {
+            return iD.Way.isClosed(a) || (a.tags.area && a.tags.area === 'yes');
+        }
+
         for (var i = 0; i < all.length; i++) {
             var a = all[i];
             if (a.type === 'way') {
                 a._line = nodeline(a);
-                if (!iD.Way.isClosed(a)) ways.push(a);
-                else areas.push(a);
+                if (isArea(a)) areas.push(a);
+                else ways.push(a);
             } else if (a._poi) {
                 points.push(a);
             } else if (!a._poi && a.type === 'node' && nodeIntersect(a, extent)) {
@@ -229,9 +236,9 @@ iD.Map = function(elem) {
         // Determine the lengths of oneway paths
         var lengths = {};
         var oneways = strokes
-        .filter(function(d, i) {
+        .filter(function(d) {
             return d.tags.oneway && d.tags.oneway === 'yes';
-        }).each(function(d, i) {
+        }).each(function(d) {
             lengths[d.id] = Math.floor(this.getTotalLength() / alength);
         }).data();
 
@@ -240,7 +247,7 @@ iD.Map = function(elem) {
         uses.exit().remove();
         uses.enter().append('path');
         uses
-            .attr('id', function(d, i) { return 'shadow-' + d.id; })
+            .attr('id', function(d) { return 'shadow-' + d.id; })
             .attr('d', function(d) { return d._line; });
 
         var labels = text_g.selectAll('text')
@@ -256,7 +263,7 @@ iD.Map = function(elem) {
         text_g.selectAll('.textpath')
             .attr('letter-spacing', alength * 2)
             .attr('xlink:href', function(d, i) { return '#shadow-' + d.id; })
-            .text(function(d, i) {
+            .text(function(d) {
                 return (new Array(Math.floor(lengths[d.id] / 2))).join('►');
             });
     }
@@ -359,6 +366,19 @@ iD.Map = function(elem) {
             .datum(map.history.graph().fetch(entity.id)).call(inspector);
         redraw();
     }
+
+    inspector.on('changeTags', function(d, tags) {
+        var entity = map.history.graph().entity(d.id);
+        map.perform(iD.actions.changeTags(entity, tags));
+    }).on('changeWayDirection', function(d) {
+        map.perform(iD.actions.changeWayDirection(d));
+    }).on('remove', function(d) {
+        map.perform(iD.actions.remove(d));
+        hideInspector();
+    }).on('close', function() {
+        deselectClick();
+        hideInspector();
+    });
 
     function zoomPan() {
         if (d3.event && d3.event.sourceEvent.type === 'dblclick') {
