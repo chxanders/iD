@@ -27,6 +27,11 @@ rect.handle {
     fill:#FFF694;
 }
 
+rect.handle.active {
+    stroke:red;
+    fill:#FFC5C5;
+}
+
 circle.teaser-point {
     stroke-width: 2;
     stroke:#1DCAFF;
@@ -50,8 +55,8 @@ path.casing:hover {
 }
 
 path.casing.active {
-    stroke:#FFF9C9 !important;
-    stroke-opacity:1 !important;
+    stroke:#E96666 !important;
+    opacity:1 !important;
     stroke-width:10 !important;
 }
 

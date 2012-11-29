@@ -59,12 +59,12 @@ iD.format.XML = {
                     return x;
                 }).map(iD.format.XML.rep)),
                 modify: changes.modify.map(function(c) {
-                    var x = Object.create(c);
+                    var x = iD.Entity(c);
                     x.changeset = changeset_id;
                     return x;
                 }).map(iD.format.XML.rep),
                 'delete': changes['delete'].map(function(c) {
-                    var x = Object.create(c);
+                    var x = iD.Entity(c);
                     x.changeset = changeset_id;
                     return x;
                 }).map(iD.format.XML.rep)

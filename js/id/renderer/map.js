@@ -164,12 +164,12 @@ iD.Map = function(elem) {
             .data(waynodes, key);
         handles.exit().remove();
         handles.enter().append('rect')
-            .attr({ width: 4, height: 4, 'class': 'handle' })
+            .attr({ width: 6, height: 6, 'class': 'handle' })
             .call(dragbehavior);
         handles.attr('transform', function(entity) {
             var p = projection(ll2a(entity));
-            return 'translate(' + [~~p[0], ~~p[1]] + ') translate(-2, -2) rotate(45, 2, 2)';
-        });
+            return 'translate(' + [~~p[0], ~~p[1]] + ') translate(-3, -3) rotate(45, 2, 2)';
+        }).classed('active', classActive);
     }
 
     function hideHandles() { hit_g.selectAll('rect.handle').remove(); }
@@ -359,12 +359,23 @@ iD.Map = function(elem) {
     function selectClick() {
         var entity = d3.select(d3.event.target).data();
         if (entity) entity = entity[0];
-        if (!entity || selection === entity.id) return;
+        if (!entity || selection === entity.id || (entity.tags && entity.tags.elastic)) return;
         selection = entity.id;
         d3.select('.inspector-wrap')
             .style('display', 'block')
             .datum(map.history.graph().fetch(entity.id)).call(inspector);
         redraw();
+    }
+
+    function removeEntity(entity) {
+        // Remove this node from any ways that is a member of
+        map.history.graph().parents(entity.id)
+            .filter(function(d) { return d.type === 'way'; })
+            .forEach(function(parent) {
+                parent.nodes = _.without(parent.nodes, entity.id);
+                map.perform(iD.actions.removeWayNode(parent, entity));
+            });
+        map.perform(iD.actions.remove(entity));
     }
 
     inspector.on('changeTags', function(d, tags) {
@@ -373,7 +384,7 @@ iD.Map = function(elem) {
     }).on('changeWayDirection', function(d) {
         map.perform(iD.actions.changeWayDirection(d));
     }).on('remove', function(d) {
-        map.perform(iD.actions.remove(d));
+        removeEntity(d);
         hideInspector();
     }).on('close', function() {
         deselectClick();

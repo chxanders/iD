@@ -8,12 +8,12 @@ iD.commit = function() {
 
         header.append('h2').text('Save Changes to OpenStreetMap');
 
-        var section = body.selectAll('div.section')
+        var section = body.selectAll('div.commit-section')
             .data(['modify', 'delete', 'create'].filter(function(d) {
                 return changes[d].length;
             }))
             .enter()
-            .append('div').attr('class', 'section');
+            .append('div').attr('class', 'commit-section');
 
         section.append('h3').text(String)
             .append('small')
@@ -26,9 +26,7 @@ iD.commit = function() {
             .enter()
             .append('li');
 
-        li.append('strong').text(function(d) {
-            return d.type + ' ';
-        });
+        li.append('strong').text(function(d) { return d.type + ' '; });
         li.append('span')
             .text(function(d) {
                  return iD.Util.friendlyName(d);
@@ -40,12 +38,14 @@ iD.commit = function() {
             .attr('placeholder', 'Brief Description');
 
         body.append('button').text('Save')
+            .attr('class', 'save')
             .on('click', function() {
                 event.save({
                     comment: d3.select('textarea.changeset-comment').node().value
                 });
             });
         body.append('button').text('Cancel')
+            .attr('class', 'cancel')
             .on('click', function() {
                 event.cancel();
             });
