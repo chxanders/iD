@@ -31,17 +31,15 @@ var iD = function(container) {
         buttons.classed('active', function (mode) { return entered === mode; });
     });
 
-    leftbuttons	.append('input')
-        .attr('type', 'text')
-        .attr('placeholder', 'find a place')
-        .attr('id', 'geocode-location')
+    leftbuttons.append('input')
+        .attr({ type: 'text', placeholder: 'find a place', id: 'geocode-location' })
         .on('keydown', function () {
             if (d3.event.keyCode !== 13) return;
             d3.event.preventDefault();
             var val = d3.select('#geocode-location').node().value;
-            var scr = document.body.appendChild(document.createElement('script'));
-            scr.src = 'http://api.tiles.mapbox.com/v3/mapbox/geocode/' +
-                encodeURIComponent(val) + '.jsonp?callback=grid';
+            d3.select(document.body).append('script')
+                .attr('src', 'http://api.tiles.mapbox.com/v3/mapbox/geocode/' +
+                    encodeURIComponent(val) + '.jsonp?callback=grid');
         });
 
     window.grid = function(resp) {
@@ -54,6 +52,9 @@ var iD = function(container) {
     var zoom = bar.append('div')
         .attr('class', 'zoombuttons');
 
+    container.append('div')
+        .attr('class', 'inspector-wrap').style('display', 'none');
+	
     zoom.append('button')
         .attr('class', 'zoom-in')
         .text('+')

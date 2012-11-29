@@ -5,31 +5,10 @@ iD.Inspector = function() {
         selection.html('');
         selection.append('h2')
             .text(iD.Util.friendlyName(selection.datum()));
-        selection.append('a')
-            .attr('class', 'permalink')
-            .attr('href', function(d) {
-                return 'http://www.openstreetmap.org/browse/' +
-                  d.type + '/' + d.id.slice(1);
-            })
-            .text('View on OSM');
-        selection.append('a')
-            .attr({ 'class': 'permalink', href: '#' }).text('XML')
-            .on('click', function(d) {
-                d3.event.stopPropagation();
-                iD.Util.codeWindow(iD.format.XML.mapping(d));
-            });
-        selection.append('a')
-            .attr({ 'class': 'permalink', href: '#' }).text('GeoJSON')
-            .on('click', function(d) {
-                d3.event.stopPropagation();
-                iD.Util.codeWindow(JSON.stringify(
-                    iD.format.GeoJSON.mapping(d), null, 2));
-            });
         if (selection.datum().type === 'way') {
             selection.append('a')
                 .attr('class', 'permalink')
                 .attr('href', '#')
-                .text('Reverse Direction')
                 .on('click', function(d) {
                     event.changeWayDirection(iD.Entity(d, {
                         nodes: _.pluck(d.nodes.reverse(), 'id')

@@ -468,10 +468,8 @@ iD.Map = function(elem) {
 
     function setZoom(z) {
         // summary:	Redraw the map at a new zoom level.
-		if (z >= 22.0)
-			z = 22.004;
-		if (z < 4.0)
-			z = 3.996;
+        if (z >= 22.0) z = 22.004;
+        if (z < 4.0) z = 3.996;
         var scale = 256 * Math.pow(2, z - 1);
         var center = pxCenter();
         var l = pointLocation(center);
@@ -539,6 +537,7 @@ iD.Map = function(elem) {
     map.dblclickEnable = dblclickEnable;
 
     setSize([parent.node().offsetWidth, parent.node().offsetHeight]);
+    hideInspector();
     redraw();
 
     return d3.rebind(map, dispatch, 'on', 'move', 'update');
