@@ -10,11 +10,12 @@ var iD = function(container) {
 
     container = d3.select(container);
 
+    var map = iD.Map(),
+    	controller = iD.Controller(map);
+    
     var m = container.append('div')
-        .attr('id', 'map');
-    var map = iD.Map(m.node());
-
-    var controller = iD.Controller(map);
+        .attr('id', 'map')
+        .call(map);
 
     var bar = container.append('div')
         .attr('id', 'bar');
@@ -52,34 +53,26 @@ var iD = function(container) {
         });
 
     window.grid = function(resp) {
-        map.setCenter([resp.results[0][0].lon, resp.results[0][0].lat]);
+        map.center([resp.results[0][0].lon, resp.results[0][0].lat]);
     };
 
     bar.append('div')
         .attr('class', 'messages');
 
     var zoom = bar.append('div')
-        .attr('class', 'zoombuttons');
+        .attr('class', 'zoombuttons')
+        .selectAll('button')
+            .data([['zoom-in', '+', map.zoomIn], ['zoom-out', '-', map.zoomOut]])
+            .enter().append('button').attr('class', function(d) { return d[0]; })
+            .text(function(d) { return d[1]; })
+            .on('click', function(d) { return d[2](); });
 
     container.append('div')
         .attr('class', 'inspector-wrap').style('display', 'none');
-	
-    zoom.append('button')
-        .attr('class', 'zoom-in')
-        .text('+')
-        .on('click', map.zoomIn);
-
-    zoom.append('button')
-        .attr('class', 'zoom-out')
-        .text('–')
-        .on('click', map.zoomOut);
     
-    map.on('update', function() {
-    	map.redraw();
-    });
 
     window.onresize = function() {
-        map.setSize([m.node().offsetWidth, m.node().offsetHeight]);
+        map.size(m.size());
     };
 
     d3.select(document).on('keydown', function() {
@@ -93,10 +86,17 @@ var iD = function(container) {
         }
     });
 
+    map.background.source(iD.Background.Pants);
+
     var hash = iD.Hash().map(map);
-    if (!hash.hadHash) map.setZoom(15).setCenter([-0.005, 51.46]);
+
+    if (!hash.hadHash) { 
+        map.zoom(15)
+	    .center([-0.005, 51.46]);
+    }
 
     pants.menuInit(container, pantsjsddm, map);
+    return map;
 };
 
 iD.supported = function() {

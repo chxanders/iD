@@ -2,7 +2,6 @@ iD.Hash = function() {
     var hash = {},
         s0, // cached location.hash
         lat = 90 - 1e-8, // allowable latitude range
-        hadHash,
         map;
 
     function qs(str) {
@@ -19,15 +18,15 @@ iD.Hash = function() {
         if (args.length < 3 || args.some(isNaN)) {
             return true; // replace bogus hash
         } else {
-            map.setZoom(args[0])
-                .setCenter([args[2], Math.min(lat, Math.max(-lat, args[1]))]);
+            map.zoom(args[0])
+                .center([args[2], Math.min(lat, Math.max(-lat, args[1]))]);
         }
     };
 
     var formatter = function(map) {
-        var center = map.getCenter(),
-        zoom = map.getZoom(),
-        precision = Math.max(0, Math.ceil(Math.log(zoom) / Math.LN2));
+        var center = map.center(),
+            zoom = map.zoom(),
+            precision = Math.max(0, Math.ceil(Math.log(zoom) / Math.LN2));
         return '#?map=' + zoom.toFixed(2) +
             '/' + center[1].toFixed(precision) +
             '/' + center[0].toFixed(precision);
@@ -40,7 +39,7 @@ iD.Hash = function() {
 
     function hashchange() {
         if (location.hash === s0) return; // ignore spurious hashchange events
-        if (parser(map, (s0 = location.hash).substring(1)))
+        if (parser(map, (s0 = location.hash).substring(2)))
             move(); // replace bogus hash
     }
 
@@ -56,13 +55,11 @@ iD.Hash = function() {
             window.addEventListener("hashchange", hashchange, false);
             if (location.hash) {
                 hashchange();
-                hadHash = true;
+                hash.hadHash = true;
             }
         }
         return hash;
     };
-
-    hash.hadHash = hadHash;
 
     return hash;
 };

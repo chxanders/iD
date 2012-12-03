@@ -67,7 +67,6 @@ pants.LoadXml = function() {
 		pants.parseXml('/pants/upload/download/' + pants.newFileName);
 		pants.curentFilename = pants.newFilename;
 console.log('his ' + pants.map.history.graph());
-pants.map.setCenter(pants.map.getCenter());
 console.log(iD.format.XML.osmChange('pants', 1, pants.map.history.changes()));
 	};
 };
