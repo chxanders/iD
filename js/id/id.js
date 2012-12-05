@@ -1,24 +1,24 @@
 var iD = function(container) {
-
-    if (!iD.supported()) {
-        container.innerHTML = 'This editor is supported in Firefox, Chrome, Safari, Opera, ' +
-            'and Internet Explorer 9 and above. Please upgrade your browser ' +
-            'or use Potlatch 2 to edit the map.';
-        container.style.cssText = 'text-align:center;font-style:italic;';
-        return;
-    }
-
-    container = d3.select(container);
-
     var map = iD.Map(),
     	controller = iD.Controller(map);
     
-    var m = container.append('div')
-        .attr('id', 'map')
-        .call(map);
+    map.background.source(iD.Background.Pants);
 
-    var bar = container.append('div')
-        .attr('id', 'bar');
+    function editor() {
+        if (!iD.supported()) {
+            this.html('This editor is supported in Firefox, Chrome, Safari, Opera, ' +
+                      'and Internet Explorer 9 and above. Please upgrade your browser ' +
+                      'or use Potlatch 2 to edit the map.')
+                .style('text-align:center;font-style:italic;');
+            return;
+        }
+
+        var m = this.append('div')
+            .attr('id', 'map')
+            .call(map);
+
+        var bar = this.append('div')
+            .attr('id', 'bar');
 
     var menu = bar.append('div')
 		.attr('class', 'topmenuitem');
@@ -32,71 +32,79 @@ var iD = function(container) {
 		.attr('class', 'leftbuttons');
     
     var buttons = leftbuttons.selectAll('buttons')
-        .data([iD.modes.AddPlace, iD.modes.AddArea])
-        .enter().append('button')
-        .text(function (mode) { return mode.title; })
-        .on('click', function (mode) { controller.enter(mode); });
+            .data([iD.modes.AddPlace, iD.modes.AddArea])
+            .enter().append('button').attr('class', 'add-button')
+            .text(function (mode) { return mode.title; })
+            .on('click', function (mode) { controller.enter(mode); });
 
-    controller.on('enter', function (entered) {
-        buttons.classed('active', function (mode) { return entered === mode; });
-    });
-
-    leftbuttons.append('input')
-        .attr({ type: 'text', placeholder: 'find a place', id: 'geocode-location' })
-        .on('keydown', function () {
-            if (d3.event.keyCode !== 13) return;
-            d3.event.preventDefault();
-            var val = d3.select('#geocode-location').node().value;
-            d3.select(document.body).append('script')
-                .attr('src', 'http://api.tiles.mapbox.com/v3/mapbox/geocode/' +
-                    encodeURIComponent(val) + '.jsonp?callback=grid');
+        controller.on('enter', function (entered) {
+            buttons.classed('active', function (mode) { return entered === mode; });
         });
 
-    window.grid = function(resp) {
-        map.center([resp.results[0][0].lon, resp.results[0][0].lat]);
-    };
+    leftbuttons.append('input')
+            .attr({ type: 'text', placeholder: 'find a place', id: 'geocode-location' })
+            .on('keydown', function () {
+                if (d3.event.keyCode !== 13) return;
+                d3.event.preventDefault();
+                var val = d3.select('#geocode-location').node().value;
+                d3.select(document.body).append('script')
+                    .attr('src', 'http://api.tiles.mapbox.com/v3/mapbox/geocode/' +
+                        encodeURIComponent(val) + '.jsonp?callback=grid');
+            });
 
-    bar.append('div')
-        .attr('class', 'messages');
+        window.grid = function(resp) {
+            map.center([resp.results[0][0].lon, resp.results[0][0].lat]);
+        };
 
-    var zoom = bar.append('div')
-        .attr('class', 'zoombuttons')
-        .selectAll('button')
-            .data([['zoom-in', '+', map.zoomIn], ['zoom-out', '-', map.zoomOut]])
-            .enter().append('button').attr('class', function(d) { return d[0]; })
-            .text(function(d) { return d[1]; })
-            .on('click', function(d) { return d[2](); });
+        bar.append('div')
+            .attr('class', 'messages');
 
-    container.append('div')
-        .attr('class', 'inspector-wrap').style('display', 'none');
-    
+        var zoom = bar.append('div')
+            .attr('class', 'zoombuttons')
+            .selectAll('button')
+                .data([['zoom-in', '+', map.zoomIn], ['zoom-out', '-', map.zoomOut]])
+                .enter().append('button').attr('class', function(d) { return d[0]; })
+                .text(function(d) { return d[1]; })
+                .on('click', function(d) { return d[2](); });
 
-    window.onresize = function() {
-        map.size(m.size());
-    };
+        this.append('div')
+            .attr('class', 'inspector-wrap').style('display', 'none');
 
-    d3.select(document).on('keydown', function() {
-        // cmd-z
-        if (d3.event.which === 90 && d3.event.metaKey) {
-            map.undo();
-        }
-        // cmd-shift-z
-        if (d3.event.which === 90 && d3.event.metaKey && d3.event.shiftKey) {
-            map.redo();
-        }
-    });
 
-    map.background.source(iD.Background.Pants);
+        window.onresize = function() {
+            map.size(m.size());
+        };
 
-    var hash = iD.Hash().map(map);
+        d3.select(document).on('keydown', function() {
+            // cmd-z
+            if (d3.event.which === 90 && d3.event.metaKey) {
+                map.undo();
+            }
+            // cmd-shift-z
+            if (d3.event.which === 90 && d3.event.metaKey && d3.event.shiftKey) {
+                map.redo();
+            }
+        });
 
-    if (!hash.hadHash) { 
+        var hash = iD.Hash().map(map);
+
+    if (!hash.hadHash) {
         map.zoom(15)
 	    .center([-0.005, 51.46]);
+        }
+
+    pants.menuInit(this, pantsjsddm, map);
     }
 
-    pants.menuInit(container, pantsjsddm, map);
-    return map;
+    editor.map = function() {
+        return map;
+    }
+
+    if (arguments.length) {
+        d3.select(container).call(editor);
+    }
+
+    return editor;
 };
 
 iD.supported = function() {
