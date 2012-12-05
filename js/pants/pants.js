@@ -66,8 +66,6 @@ pants.LoadXml = function() {
 	pants.DoOnFrameLoad = function() {
 		pants.parseXml('/pants/upload/download/' + pants.newFileName);
 		pants.curentFilename = pants.newFilename;
-console.log('his ' + pants.map.history.graph());
-console.log(iD.format.XML.osmChange('pants', 1, pants.map.history.changes()));
 	};
 };
 
@@ -75,7 +73,6 @@ pants.SaveXml = function() {
 	pants.jsddm_close();
 	var fname = pants.newFileName ? pants.newFileName : 'pants.xml',
 		request = new FormData();
-console.log(iD.format.XML.osmChange('pants', 1, pants.map.history.changes()));	
 	request.append('filename', fname);
 	request.append('uploadfile', 
 					new Blob([iD.format.XML.osmChange('pants', 1, pants.map.history.changes())], 
@@ -215,7 +212,7 @@ pants.parseXml = function(path) {
 
 	        _.forEach(root.getElementsByTagName('way'), addEntity);
 	        _.forEach(root.getElementsByTagName('node'), addEntity);
-	        pants.map.history.merge(iD.Graph(entities, 'create'));
+	        map.connectionLoad(iD.Graph(entities, 'create'));
 		});
     }
     return parse(path);

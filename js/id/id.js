@@ -1,6 +1,11 @@
-var iD = function(container) {
-    var map = iD.Map(),
-    	controller = iD.Controller(map);
+window.iD = function(container) {
+    var connection = iD.Connection()
+            .url('http://api06.dev.openstreetmap.org'),
+        history = iD.History(),
+        map = iD.Map()
+            .connection(connection)
+            .history(history),
+        controller = iD.Controller(map, history);
     
     map.background.source(iD.Background.Pants);
 
@@ -33,7 +38,8 @@ var iD = function(container) {
     
     var buttons = leftbuttons.selectAll('buttons')
             .data([iD.modes.AddPlace, iD.modes.AddArea])
-            .enter().append('button').attr('class', 'add-button')
+            .enter().append('button')
+                .attr('class', 'add-button')
             .text(function (mode) { return mode.title; })
             .on('click', function (mode) { controller.enter(mode); });
 
@@ -68,23 +74,30 @@ var iD = function(container) {
                 .on('click', function(d) { return d[2](); });
 
         this.append('div')
-            .attr('class', 'inspector-wrap').style('display', 'none');
+            .attr('class', 'inspector-wrap')
+            .style('display', 'none');
 
 
         window.onresize = function() {
             map.size(m.size());
         };
 
-        d3.select(document).on('keydown', function() {
-            // cmd-z
-            if (d3.event.which === 90 && d3.event.metaKey) {
-                map.undo();
-            }
-            // cmd-shift-z
-            if (d3.event.which === 90 && d3.event.metaKey && d3.event.shiftKey) {
-                map.redo();
-            }
-        });
+        var keybinding = d3.keybinding()
+            .on('a', function(evt, mods) {
+                controller.enter(iD.modes.AddArea);
+            })
+            .on('p', function(evt, mods) {
+                controller.enter(iD.modes.AddPlace);
+            })
+            .on('r', function(evt, mods) {
+                controller.enter(iD.modes.AddRoad);
+            })
+            .on('z', function(evt, mods) {
+                if (mods === '⇧⌘') history.redo();
+                if (mods === '⌘') history.undo();
+            });
+        d3.select(document).call(keybinding);
+        map.keybinding(keybinding);
 
         var hash = iD.Hash().map(map);
 
@@ -94,11 +107,15 @@ var iD = function(container) {
         }
 
     pants.menuInit(this, pantsjsddm, map);
-    }
+    };
 
     editor.map = function() {
         return map;
-    }
+    };
+
+    editor.controller = function() {
+        return controller;
+    };
 
     if (arguments.length) {
         d3.select(container).call(editor);

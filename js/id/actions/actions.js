@@ -27,19 +27,18 @@ iD.actions.remove = function(node) {
 };
 
 // https://github.com/openstreetmap/potlatch2/blob/master/net/systemeD/halcyon/connection/actions/AddNodeToWayAction.as
-iD.actions.addWayNode = function(way, node) {
+iD.actions.addWayNode = function(way, node, index) {
     return function(graph) {
-        return graph.replace(way.update({
-            nodes: way.nodes.slice()
-        })).replace(node, 'added to a road');
+        var nodes = way.nodes.slice();
+        nodes.splice(index || nodes.length, 0, node.id);
+        return graph.replace(way.update({nodes: nodes})).replace(node, 'added to a road');
     };
 };
 
 iD.actions.removeWayNode = function(way, node) {
     return function(graph) {
-        return graph.replace(way.update({
-            nodes: way.nodes.slice()
-        })).remove(node, 'removed from a road');
+        var nodes = _.without(way.nodes, node.id);
+        return graph.replace(way.update({nodes: nodes}), 'removed from a road');
     };
 };
 
@@ -62,12 +61,9 @@ iD.actions.changeTags = function(node, tags) {
 
 // https://github.com/openstreetmap/josm/blob/mirror/src/org/openstreetmap/josm/command/MoveCommand.java
 // https://github.com/openstreetmap/potlatch2/blob/master/net/systemeD/halcyon/connection/actions/MoveNodeAction.as
-iD.actions.move = function(entity, to) {
+iD.actions.move = function(entity, loc) {
     return function(graph) {
-        return graph.replace(entity.update({
-            lon: to.lon || to[0],
-            lat: to.lat || to[1]
-        }), 'moved an element');
+        return graph.replace(entity.update({loc: loc}), 'moved an element');
     };
 };
 

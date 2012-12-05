@@ -1,50 +1,86 @@
 iD.Map = function() {
-    var connection,
+    var connection, history,
         dimensions = [],
-        dispatch = d3.dispatch('move', 'update'),
+        dispatch = d3.dispatch('move'),
         inspector = iD.Inspector(),
         selection = null,
         translateStart,
-        apiTilesLoaded = {},
+        keybinding,
         projection = d3.geo.mercator(),
         zoom = d3.behavior.zoom()
             .translate(projection.translate())
             .scale(projection.scale())
             .scaleExtent([256 * Math.pow(2, 3), 256 * Math.pow(2, 24)])
             .on('zoom', zoomPan),
-        only,
         dblclickEnabled = true,
+        dragEnabled = true,
+        dragging,
         dragbehavior = d3.behavior.drag()
             .origin(function(entity) {
-                var p = projection(ll2a(entity));
-                only = iD.Util.trueObj([entity.id].concat(
-                    _.pluck(map.history.graph().parents(entity.id), 'id')));
+                if (!dragEnabled) return { x: 0, y: 0 };
+                var p = projection(entity.loc);
                 return { x: p[0], y: p[1] };
             })
-            .on('dragstart', function() {
-                map.history.perform(iD.actions.noop());
+            .on('drag', function(entity) {
                 d3.event.sourceEvent.stopPropagation();
+
+                if (!dragging) {
+                    if (entity.accuracy) {
+                        var way = history.graph().entity(entity.way);
+                        history.perform(iD.actions.addWayNode(way, iD.Node(entity), entity.index));
+                    }
+
+                    dragging = iD.util.trueObj([entity.id].concat(
+                        _.pluck(history.graph().parents(entity.id), 'id')));
+                    history.perform(iD.actions.noop());
+                }
+
+                var to = projection.invert([d3.event.x, d3.event.y]);
+                history.replace(iD.actions.move(entity, to));
+
+                redraw();
+            })
+            .on('dragend', function () {
+                if (!dragEnabled || !dragging) return;
+                dragging = undefined;
+                redraw();
+            }),
+        waydragbehavior = d3.behavior.drag()
+            .origin(function(entity) {
+                var p = projection(entity.nodes[0].loc);
+                return { x: p[0], y: p[1] };
             })
             .on('drag', function(entity) {
-                var to = projection.invert([d3.event.x, d3.event.y]);
+                console.log(dragEnabled);
+                if (!dragEnabled) return;
                 d3.event.sourceEvent.stopPropagation();
-                map.history.replace(iD.actions.move(entity, to));
-                redraw(only);
+
+                if (!dragging) {
+                    dragging = iD.util.trueObj([entity.id].concat(
+                        _.pluck(history.graph().parents(entity.id), 'id')));
+                    history.perform(iD.actions.noop());
+                }
+
+                entity.nodes.forEach(function(node) {
+                    var start = projection(node.loc);
+                    var end = projection.invert([start[0] + d3.event.dx, start[1] + d3.event.dy]);
+                    node.loc = end;
+                    history.replace(iD.actions.move(node, end));
+                });
             })
-            .on('dragend', redraw),
-        nodeline = function(d) {
-            return 'M' + d.nodes.map(ll2a).map(projection).map(roundCoords).join('L');
-        },
-        getline = function(d) { return d._line; },
-        key = function(d) { return d.id; },
+            .on('dragend', function () {
+                if (!dragEnabled || !dragging) return;
+                dragging = undefined;
+                redraw();
+            }),
         background = iD.Background()
-            .projection(projection),
+            .projection(projection)
+            .scaleExtent([0, 20]),
         class_stroke = iD.Style.styleClasses('stroke'),
         class_fill = iD.Style.styleClasses('stroke'),
         class_area = iD.Style.styleClasses('area'),
         class_casing = iD.Style.styleClasses('casing'),
-        prefix = prefixMatch(['webkit', 'ms', 'Moz', 'O']),
-        transformProp = prefix + 'transform',
+        transformProp = iD.util.prefix() + 'transform',
         supersurface, surface, defs, tilegroup, r, g, alength;
 
     function map() {
@@ -62,6 +98,7 @@ iD.Map = function() {
                 .attr({ x: 0, y: 0 });
 
         tilegroup = surface.append('g')
+            .attr('clip-path', 'url(#clip)')
             .on('click', deselectClick);
 
         r = surface.append('g')
@@ -78,45 +115,41 @@ iD.Map = function() {
         alength = arrow.node().getComputedTextLength();
         arrow.remove();
 
+        inspector.on('changeTags', function(d, tags) {
+            var entity = history.graph().entity(d.id);
+            history.perform(iD.actions.changeTags(entity, tags));
+        }).on('changeWayDirection', function(d) {
+            history.perform(iD.actions.changeWayDirection(d));
+        }).on('remove', function(d) {
+            removeEntity(d);
+            hideInspector();
+        }).on('close', function() {
+            deselectClick();
+            hideInspector();
+        });
+
+        map.connectionLoad = connectionLoad;
         map.size(this.size());
-
-        hideInspector();
-
         map.surface = surface;
     }
 
-    map.history = iD.History();
-
-    function prefixMatch(p) { // via mbostock
-        var i = -1, n = p.length, s = document.body.style;
-        while (++i < n) if (p[i] + 'Transform' in s) return '-' + p[i].toLowerCase() + '-';
-        return '';
+    function pxCenter() { return [dimensions[0] / 2, dimensions[1] / 2]; }
+    function classActive(d) { return d.id === selection; }
+    function getline(d) { return d._line; }
+    function key(d) { return d.id; }
+    function nodeline(d) {
+        return 'M' + _.pluck(d.nodes, 'loc').map(projection).map(iD.util.geo.roundCoords).join('L');
     }
-    function ll2a(o) { return [o.lon, o.lat]; }
-    function roundCoords(c) { return [Math.floor(c[0]), Math.floor(c[1])]; }
 
     function hideInspector() {
         d3.select('.inspector-wrap').style('display', 'none');
-    }
-
-    function classActive(d) { return d.id === selection; }
-
-    function nodeIntersect(entity, extent) {
-        return entity.lon > extent[0][0] &&
-            entity.lon < extent[1][0] &&
-            entity.lat < extent[0][1] &&
-            entity.lat > extent[1][1];
-    }
-
-    function isArea(a) {
-        return iD.Way.isClosed(a) || (a.tags.area && a.tags.area === 'yes');
     }
 
     function drawVector(only) {
         if (surface.style(transformProp) != 'none') return;
         var all = [], ways = [], areas = [], points = [], waynodes = [],
             extent = map.extent(),
-            graph = map.history.graph();
+            graph = history.graph();
 
         if (!only) {
             all = graph.intersects(extent);
@@ -127,40 +160,73 @@ iD.Map = function() {
         var filter = only ?
             function(d) { return only[d.id]; } : function() { return true; };
 
-        if (all.length > 2000) {
-            return hideVector();
-        }
+        if (all.length > 200000) return hideVector();
 
         for (var i = 0; i < all.length; i++) {
             var a = all[i];
             if (a.type === 'way') {
                 a._line = nodeline(a);
-                if (isArea(a)) areas.push(a);
+                if (iD.Way.isArea(a)) areas.push(a);
                 else ways.push(a);
             } else if (a._poi) {
                 points.push(a);
-            } else if (!a._poi && a.type === 'node' && nodeIntersect(a, extent)) {
+            } else if (!a._poi && a.type === 'node' && iD.util.geo.nodeIntersect(a, extent)) {
                 waynodes.push(a);
             }
         }
+        var wayAccuracyHandles = ways.reduce(function(mem, w) {
+            return mem.concat(accuracyHandles(w));
+        }, []);
         drawHandles(waynodes, filter);
+        drawAccuracyHandles(wayAccuracyHandles, filter);
         drawCasings(ways, filter);
         drawFills(areas, filter);
         drawStrokes(ways, filter);
         drawMarkers(points, filter);
     }
 
+    function accuracyHandles(way) {
+        var handles = [];
+        for (var i = 0; i < way.nodes.length - 1; i++) {
+            handles[i] = iD.Node();
+            handles[i].loc = iD.util.geo.interp(way.nodes[i].loc, way.nodes[i + 1].loc, 0.5);
+            handles[i].way = way.id;
+            handles[i].index = i + 1;
+            handles[i].accuracy = true;
+            handles[i].tags = { name: 'Improve way accuracy' };
+        }
+        return handles;
+    }
+
     function drawHandles(waynodes, filter) {
         var handles = g.hit.selectAll('image.handle')
             .filter(filter)
             .data(waynodes, key);
+        function olderOnTop(a, b) {
+            return (+a.id.slice(1)) - (+b.id.slice(1));
+        }
         handles.exit().remove();
         handles.enter().append('image')
             .attr({ width: 6, height: 6, 'class': 'handle', 'xlink:href': 'css/handle.png' })
             .call(dragbehavior);
         handles.attr('transform', function(entity) {
-            var p = projection(ll2a(entity));
-            return 'translate(' + [~~p[0], ~~p[1]] + ') translate(-3, -3) rotate(45, 3, 3)';
+                var p = projection(entity.loc);
+                return 'translate(' + [~~p[0], ~~p[1]] + ') translate(-3, -3) rotate(45, 3, 3)';
+            })
+            .classed('active', classActive)
+            .sort(olderOnTop);
+    }
+
+    function drawAccuracyHandles(waynodes) {
+        var handles = g.hit.selectAll('circle.accuracy-handle')
+            .data(waynodes, key);
+        handles.exit().remove();
+        handles.enter().append('circle')
+            .attr({ r: 2, 'class': 'accuracy-handle' })
+            .call(dragbehavior);
+        handles.attr('transform', function(entity) {
+            var p = projection(entity.loc);
+            return 'translate(' + [~~p[0], ~~p[1]] + ')';
         }).classed('active', classActive);
     }
 
@@ -195,14 +261,13 @@ iD.Map = function() {
         marker.append('image')
             .attr({ width: 16, height: 16 });
         markers.attr('transform', function(d) {
-                var pt = projection([d.lon, d.lat]);
+                var pt = projection(d.loc);
                 return 'translate(' + [~~pt[0], ~~pt[1]] + ') translate(-8, -8)';
             })
             .classed('active', classActive);
         markers.select('image').attr('xlink:href', iD.Style.markerimage);
     }
 
-    function isOneWay(d) { return d.tags.oneway && d.tags.oneway === 'yes'; }
     function drawStrokes(ways, filter) {
         var strokes = g.stroke.selectAll('path')
             .filter(filter)
@@ -219,7 +284,7 @@ iD.Map = function() {
 
         // Determine the lengths of oneway paths
         var lengths = {},
-            oneways = strokes.filter(isOneWay).each(function(d) {
+            oneways = strokes.filter(iD.Way.isOneWay).each(function(d) {
                 lengths[d.id] = Math.floor(this.getTotalLength() / alength);
             }).data();
 
@@ -259,73 +324,10 @@ iD.Map = function() {
             .classed('active', classActive);
     }
 
-    map.size = function(_) {
-        if (!arguments.length) return dimensions;
-        dimensions = _;
-
-        surface
-            .size(dimensions)
-            .selectAll('#clip-rect')
-            .size(dimensions);
-
-        background.size(dimensions);
-
-        redraw();
-
-        return map;
-    };
-
-    function tileAtZoom(t, distance) {
-        var power = Math.pow(2, distance);
-        return [
-            Math.floor(t[0] * power),
-            Math.floor(t[1] * power),
-            t[2] + distance];
+    function connectionLoad(err, result) {
+        history.merge(result);
+        drawVector(iD.util.trueObj(Object.keys(result.entities)));
     }
-
-    function tileAlreadyLoaded(c) {
-        if (apiTilesLoaded[c]) return false;
-        for (var i = 0; i < 4; i++) {
-            if (apiTilesLoaded[tileAtZoom(c, -i)]) return false;
-        }
-        return true;
-    }
-
-    function apiTiles() {
-        var t = projection.translate(),
-            s = projection.scale(),
-            z = Math.max(Math.log(s) / Math.log(2) - 8, 0),
-            rz = Math.floor(z),
-            ts = 512 * Math.pow(2, z - rz),
-            tile_origin = [s / 2 - t[0], s / 2 - t[1]],
-            coords = [],
-            cols = d3.range(Math.max(0, Math.floor(tile_origin[0] / ts)),
-                            Math.max(0, Math.ceil((tile_origin[0] +  dimensions[0]) / ts))),
-            rows = d3.range(Math.max(0, Math.floor(tile_origin[1] / ts)),
-                            Math.max(0, Math.ceil((tile_origin[1] +  dimensions[1]) / ts)));
-
-        cols.forEach(function(x) {
-            rows.forEach(function(y) {
-                coords.push([x, y, rz]);
-            });
-        });
-
-        function apiExtentBox(c) {
-            var x = (c[0] * ts) - tile_origin[0];
-            var y = (c[1] * ts) - tile_origin[1];
-            apiTilesLoaded[c] = true;
-            return [
-                projection.invert([x, y]),
-                projection.invert([x + ts, y + ts])];
-        }
-
-        return coords.filter(tileAlreadyLoaded).map(apiExtentBox);
-    }
-
-
-    var download = _.debounce(function() {
-		apiTiles();
-    }, 1000);
 
     function nameHoverIn() {
         var entity = d3.select(d3.event.target).data();
@@ -333,57 +335,41 @@ iD.Map = function() {
     }
 
     function nameHoverOut() { d3.select('.messages').text(''); }
-    function deselectClick() {
-        var hadSelection = !!selection;
-        selection = null;
-        if (hadSelection) {
-            redraw();
-            hideInspector();
-        }
-    }
-
-    function selectEntity(entity) {
-        selection = entity.id;
-        d3.select('.inspector-wrap')
-            .style('display', 'block')
-            .datum(map.history.graph().fetch(entity.id)).call(inspector);
-        redraw();
-    }
 
     function selectClick() {
         var entity = d3.select(d3.event.target).data();
         if (entity) entity = entity[0];
         if (!entity || selection === entity.id || (entity.tags && entity.tags.elastic)) return;
-        selection = entity.id;
-        d3.select('.inspector-wrap')
-            .style('display', 'block')
-            .datum(map.history.graph().fetch(entity.id)).call(inspector);
+        if (entity.type === 'way') d3.select(d3.event.target).call(waydragbehavior);
+        map.selectEntity(entity);
+        keybinding.on('⌫.deletefeature', function(e) {
+            removeEntity(entity);
+            e.preventDefault();
+        });
+    }
+
+    function deselectClick() {
+        if (selection && selection.type === 'way') {
+            d3.select(d3.event.target)
+                .on('mousedown.drag', null)
+                .on('touchstart.drag', null);
+        }
+        selection = null;
         redraw();
+        hideInspector();
+        keybinding.on('⌫.deletefeature', null);
     }
 
     function removeEntity(entity) {
         // Remove this node from any ways that is a member of
-        map.history.graph().parents(entity.id)
+        history.graph().parents(entity.id)
             .filter(function(d) { return d.type === 'way'; })
             .forEach(function(parent) {
-                parent.nodes = _.without(parent.nodes, entity.id);
-                map.perform(iD.actions.removeWayNode(parent, entity));
+                history.perform(iD.actions.removeWayNode(parent, entity));
             });
-        map.perform(iD.actions.remove(entity));
-    }
-
-    inspector.on('changeTags', function(d, tags) {
-        var entity = map.history.graph().entity(d.id);
-        map.perform(iD.actions.changeTags(entity, tags));
-    }).on('changeWayDirection', function(d) {
-        map.perform(iD.actions.changeWayDirection(d));
-    }).on('remove', function(d) {
-        removeEntity(d);
-        hideInspector();
-    }).on('close', function() {
         deselectClick();
-        hideInspector();
-    });
+        history.perform(iD.actions.remove(entity));
+    }
 
     function zoomPan() {
         if (d3.event && d3.event.sourceEvent.type === 'dblclick') {
@@ -412,41 +398,17 @@ iD.Map = function() {
         redraw();
     }
 
-    function redraw(only) {
-        if (!only) {
+    function redraw() {
+        if (!dragging) {
             dispatch.move(map);
             tilegroup.call(background);
         }
-        if (map.zoom() > 16) {
-            download();
-            drawVector(only);
+        if (map.zoom() > 8) {
+            connection.loadTiles(projection);
+            drawVector(dragging);
         } else {
             hideVector();
         }
-        return map;
-    }
-
-    map.perform = function(action) {
-        map.history.perform(action);
-        redraw();
-        return map;
-    };
-
-    map.undo = function() {
-        map.history.undo();
-        redraw();
-        return map;
-    };
-
-    map.redo = function() {
-        map.history.redo();
-        redraw();
-        return map;
-    };
-
-    function dblclickEnable(_) {
-        if (!arguments.length) return dblclickEnabled;
-        dblclickEnabled = _;
         return map;
     }
 
@@ -462,31 +424,49 @@ iD.Map = function() {
         return [l[0] * scale + translate[0], l[1] * scale + translate[1]];
     }
 
-    function pxCenter() {
-        return [dimensions[0] / 2, dimensions[0] / 2];
-    }
+    map.mouseCoordinates = function() {
+        return projection.invert(d3.mouse(surface.node()));
+    };
+
+    map.dblclickEnable = function(_) {
+        if (!arguments.length) return dblclickEnabled;
+        dblclickEnabled = _;
+        return map;
+    };
+
+    map.dragEnable = function(_) {
+        if (!arguments.length) return dragEnabled;
+        dragEnabled = _;
+        return map;
+    };
 
     map.zoom = function(z) {
         if (!arguments.length) {
-            return Math.max(Math.log(projection.scale()) / Math.log(2) - 7, 0);
+            return Math.max(Math.log(projection.scale()) / Math.LN2 - 8, 0);
         }
-
-        // summary:	Redraw the map at a new zoom level.
-        var scale = 256 * Math.pow(2, z - 1);
-        var center = pxCenter();
-        var l = pointLocation(center);
+        var scale = 256 * Math.pow(2, z),
+            center = pxCenter(),
+            l = pointLocation(center);
         projection.scale(scale);
         zoom.scale(projection.scale());
-
         var t = projection.translate();
         l = locationPoint(l);
         t[0] += center[0] - l[0];
         t[1] += center[1] - l[1];
         projection.translate(t);
         zoom.translate(projection.translate());
+        return redraw();
+    };
 
-        redraw();
-        return map;
+    map.size = function(_) {
+        if (!arguments.length) return dimensions;
+        dimensions = _;
+        surface
+            .size(dimensions)
+            .selectAll('#clip-rect')
+            .size(dimensions);
+        background.size(dimensions);
+        return redraw();
     };
 
     map.zoomIn = function() { return map.zoom(Math.ceil(map.zoom() + 1)); };
@@ -500,10 +480,10 @@ iD.Map = function() {
                 c = pxCenter(),
                 ll = projection(loc);
             projection.translate([
-                t[0] - ll[0] + c[0], t[1] - ll[1] + c[1]]);
+                t[0] - ll[0] + c[0],
+                t[1] - ll[1] + c[1]]);
             zoom.translate(projection.translate());
-            redraw();
-            return map;
+            return redraw();
         }
     };
 
@@ -512,21 +492,42 @@ iD.Map = function() {
     };
 
     map.flush = function () {
-        apiTilesLoaded = {};
+        connection.flush();
         return map;
     };
 
     map.connection = function(_) {
-      if (!arguments.length) return connection;
-      connection = _;
-      return map;
+        if (!arguments.length) return connection;
+        connection = _;
+        connection.on('load', connectionLoad);
+        return map;
+    };
+
+    map.history = function (_) {
+        if (!arguments.length) return history;
+        history = _;
+        history.on('change.map', redraw);
+        return map;
+    };
+
+    map.keybinding = function (_) {
+        if (!arguments.length) return keybinding;
+        keybinding = _;
+        return map;
+    };	
+
+    map.selectEntity = function(entity) {
+        selection = entity.id;
+        d3.select('.inspector-wrap')
+            .style('display', 'block')
+            .datum(history.graph().fetch(entity.id))
+            .call(inspector);
+        redraw();
     };
 
     map.background = background;
     map.projection = projection;
     map.redraw = redraw;
-    map.selectEntity = selectEntity;
-    map.dblclickEnable = dblclickEnable;
 
-    return d3.rebind(map, dispatch, 'on', 'move', 'update');
+    return d3.rebind(map, dispatch, 'on', 'move');
 };

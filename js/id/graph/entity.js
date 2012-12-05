@@ -1,18 +1,13 @@
-iD.Entity = function(a, b) {
-	console.log('Entity ' + a);
-	console.log('Entity ' + b);
-    if (!(this instanceof iD.Entity)) return new iD.Entity(a, b);
+iD.Entity = function(a, b, c) {
+    if (!(this instanceof iD.Entity)) return new iD.Entity(a, b, c);
 
-    _.extend(this, {tags: {}}, a, b);
+    _.extend(this, {tags: {}}, a, b, c);
 
-    if (b) {
-        this._updated = true;
-    }
-    this._updated = true;
     if (!this.id) {
-        this.id = iD.Util.id(this.type);
+        this.id = iD.util.id(this.type);
         this._updated = true;
     }
+    delete this._extent;
 
     if (iD.debug) {
         Object.freeze(this);
@@ -22,8 +17,7 @@ iD.Entity = function(a, b) {
 
 iD.Entity.prototype = {
     update: function(attrs) {
-        attrs._updated = true;
-        return iD.Entity(this, attrs);
+        return iD.Entity(this, attrs, {_updated: true});
     },
 
     created: function() {
@@ -36,13 +30,25 @@ iD.Entity.prototype = {
 };
 
 iD.Node = function(attrs) {
-    return iD.Entity(_.extend({}, attrs || {}, {type: 'node'}));
+    return iD.Entity({tags: {}}, attrs || {}, {type: 'node'});
 };
 
 iD.Way = function(attrs) {
-    return iD.Entity(_.extend({}, attrs || {}, {type: 'way', nodes: []}));
+    return iD.Entity({tags: {}, nodes: []}, attrs || {}, {type: 'way'});
+};
+
+iD.Way.isOneWay = function(d) {
+    return !!(d.tags.oneway && d.tags.oneway === 'yes');
+};
+
+iD.Way.isClosed = function(d) {
+    return (!d.nodes.length) || d.nodes[d.nodes.length - 1].id === d.nodes[0].id;
+};
+
+iD.Way.isArea = function(d) {
+    return iD.Way.isClosed(d) || (d.tags.area && d.tags.area === 'yes');
 };
 
 iD.Relation = function(attrs) {
-    return iD.Entity(_.extend({}, attrs || {}, {type: 'relation'}));
+    return iD.Entity({tags: {}}, attrs || {}, {type: 'relation'});
 };

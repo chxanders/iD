@@ -206,6 +206,21 @@ table th {
     cursor: pointer;
 }
 
+div.typeahead {
+    background:#fff;
+    width:148px;
+    border:1px solid #ccc;
+}
+
+div.typeahead a {
+    padding:1px 4px;
+    display:block;
+}
+
+div.typeahead a.active {
+    background:#DDE4FF;
+}
+
 .modal {
     width:640px;
     height:550px;

@@ -1,10 +1,11 @@
 iD.Inspector = function() {
-    var event = d3.dispatch('changeTags', 'changeWayDirection', 'update', 'remove', 'close');
+    var event = d3.dispatch('changeTags', 'changeWayDirection', 'update', 'remove', 'close'),
+        taginfo = iD.taginfo();
 
     function drawhead(selection) {
         selection.html('');
         selection.append('h2')
-            .text(iD.Util.friendlyName(selection.datum()));
+            .text(iD.util.friendlyName(selection.datum()));
         if (selection.datum().type === 'way') {
             selection.append('a')
                 .attr('class', 'permalink')
@@ -48,9 +49,20 @@ iD.Inspector = function() {
                     .data(function(d) { return [d, d]; });
                 valuetds.enter().append('td').append('input')
                     .property('value', function(d, i) { return d[i ? 'value' : 'key']; })
-                    .on('keyup', function(d, i) {
+                    .on('keyup.update', function(d, i) {
                         d[i ? 'value' : 'key'] = this.value;
                         update();
+                    })
+                    .each(function(d, i) {
+                        if (!i) return;
+                        var selection = d3.select(this);
+                        selection.call(d3.typeahead()
+                            .data(function(selection, callback) {
+                                update();
+                                taginfo.values(selection.datum().key, function(err, data) {
+                                    callback(data.data);
+                                });
+                            }));
                     });
 
                 row.append('td').attr('class', 'tag-help').append('a')
@@ -109,7 +121,6 @@ iD.Inspector = function() {
             }
         });
     }
-
 
     return d3.rebind(inspector, event, 'on');
 };
