@@ -36,7 +36,7 @@ window.iD = function(container) {
     var leftbuttons = bar.append('div')
 		.attr('class', 'leftbuttons');
     
-    var buttons = leftbuttons.selectAll('buttons')
+    var buttons = leftbuttons.selectAll('add-button')
             .data([iD.modes.AddPlace, iD.modes.AddArea])
             .enter().append('button')
                 .attr('class', 'add-button')
@@ -104,9 +104,9 @@ window.iD = function(container) {
     if (!hash.hadHash) {
         map.zoom(15)
 	    .center([-0.005, 51.46]);
-        }
-
+    }
     pants.menuInit(this, pantsjsddm, map);
+    controller.enter(iD.modes.Browse());
     };
 
     editor.map = function() {
