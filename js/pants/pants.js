@@ -212,7 +212,8 @@ pants.parseXml = function(path) {
 
 	        _.forEach(root.getElementsByTagName('way'), addEntity);
 	        _.forEach(root.getElementsByTagName('node'), addEntity);
-	        map.connectionLoad(iD.Graph(entities, 'create'));
+	        iD.History().merge(iD.Graph(entities, 'create'));
+            iD.Map().connectionLoad(iD.Graph(entities, 'create'));
 		});
     }
     return parse(path);
