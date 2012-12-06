@@ -61,8 +61,10 @@ iD.Background = function() {
     return background;
 };
 
+iD.BackgroundSource = {};
+
 // derive the url of a 'quadkey' style tile from a coordinate object
-iD.Background.template = function(template) {
+iD.BackgroundSource.template = function(template) {
     return function(coord) {
         var u = '';
         for (var zoom = coord[2]; zoom > 0; zoom--) {
@@ -83,9 +85,11 @@ iD.Background.template = function(template) {
     };
 };
 
-iD.Background.Bing = iD.Background.template('http://ecn.t{t}.tiles.virtualearth.net/tiles/a{u}.jpeg?g=587&mkt=en-gb&n=z');
+iD.BackgroundSource.Bing = iD.BackgroundSource.template(
+    'http://ecn.t{t}.tiles.virtualearth.net/tiles/a{u}.jpeg?g=587&mkt=en-gb&n=z');
 
-iD.Background.Pants = function (coord) {
+// PANTS
+iD.BackgroundSource.Pants = function (coord) {
 	return  '/pants/tile/' + coord[2] + '/' + coord[0] + '/' + coord[1] + '.png';
 };
 

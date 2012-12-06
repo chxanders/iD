@@ -6,8 +6,8 @@ window.iD = function(container) {
             .connection(connection)
             .history(history),
         controller = iD.Controller(map, history);
-    
-    map.background.source(iD.Background.Pants);
+
+    map.background.source(iD.BackgroundSource.Pants);
 
     function editor() {
         if (!iD.supported()) {
@@ -25,42 +25,26 @@ window.iD = function(container) {
         var bar = this.append('div')
             .attr('id', 'bar');
 
-    var menu = bar.append('div')
-		.attr('class', 'topmenuitem');
-
-    var pantsjsddm = menu.append('ul')
+        var pantsjsddm = bar.append('ul')
 		.attr('id', 'jsddm').append('li').append('a')
 		.attr('style', 'text-align:center;padding-left:0;width:80px;')
 		.text('PANTS').append('ul');
-    
-    var leftbuttons = bar.append('div')
-		.attr('class', 'leftbuttons');
-    
-    var buttons = leftbuttons.selectAll('add-button')
-            .data([iD.modes.AddPlace, iD.modes.AddArea])
+
+        var buttons_joined = bar.append('div')
+            .attr('class', 'buttons-joined');
+
+        var buttons = buttons_joined.selectAll('button.add-button')
+            .data([iD.modes.Browse(), iD.modes.AddPlace(), iD.modes.AddRoad(), iD.modes.AddArea()])
             .enter().append('button')
                 .attr('class', 'add-button')
             .text(function (mode) { return mode.title; })
+            .attr('data-original-title', function (mode) { return mode.description; })
+            .call(bootstrap.tooltip().placement('bottom'))
             .on('click', function (mode) { controller.enter(mode); });
 
         controller.on('enter', function (entered) {
-            buttons.classed('active', function (mode) { return entered === mode; });
+            buttons.classed('active', function (mode) { return entered.button === mode.button; });
         });
-
-    leftbuttons.append('input')
-            .attr({ type: 'text', placeholder: 'find a place', id: 'geocode-location' })
-            .on('keydown', function () {
-                if (d3.event.keyCode !== 13) return;
-                d3.event.preventDefault();
-                var val = d3.select('#geocode-location').node().value;
-                d3.select(document.body).append('script')
-                    .attr('src', 'http://api.tiles.mapbox.com/v3/mapbox/geocode/' +
-                        encodeURIComponent(val) + '.jsonp?callback=grid');
-            });
-
-        window.grid = function(resp) {
-            map.center([resp.results[0][0].lon, resp.results[0][0].lat]);
-        };
 
         bar.append('div')
             .attr('class', 'messages');
@@ -73,10 +57,35 @@ window.iD = function(container) {
                 .text(function(d) { return d[1]; })
                 .on('click', function(d) { return d[2](); });
 
+        var gc = bar.append('div').attr('class', 'geocode-control');
+        gc.append('button').text('?');
+        gc
+            .on('mouseover', function() {
+                d3.select('.geocode-control input').style('display', 'inline-block');
+            })
+            .on('mouseout', function() {
+                d3.select('.geocode-control input').style('display', 'none');
+            });
+        gc.append('input')
+            .attr({
+                type: 'text',
+                placeholder: 'find a place'
+            })
+            .on('keydown', function () {
+                if (d3.event.keyCode !== 13) return;
+                d3.event.preventDefault();
+                d3.json('http://api.tiles.mapbox.com/v3/mapbox/geocode/' +
+                    encodeURIComponent(this.value) + '.json', function(err, resp) {
+                    map.center([resp.results[0][0].lon, resp.results[0][0].lat]);
+                });
+            });
+
+        this.append('div').attr('class', 'layerswitcher-control')
+            .call(iD.layerswitcher(map));
+
         this.append('div')
             .attr('class', 'inspector-wrap')
             .style('display', 'none');
-
 
         window.onresize = function() {
             map.size(m.size());
@@ -84,13 +93,13 @@ window.iD = function(container) {
 
         var keybinding = d3.keybinding()
             .on('a', function(evt, mods) {
-                controller.enter(iD.modes.AddArea);
+                controller.enter(iD.modes.AddArea());
             })
             .on('p', function(evt, mods) {
-                controller.enter(iD.modes.AddPlace);
+                controller.enter(iD.modes.AddPlace());
             })
             .on('r', function(evt, mods) {
-                controller.enter(iD.modes.AddRoad);
+                controller.enter(iD.modes.AddRoad());
             })
             .on('z', function(evt, mods) {
                 if (mods === '⇧⌘') history.redo();
@@ -101,12 +110,20 @@ window.iD = function(container) {
 
         var hash = iD.Hash().map(map);
 
-    if (!hash.hadHash) {
-        map.zoom(15)
-	    .center([-0.005, 51.46]);
+        if (!hash.hadHash) {
+           map.zoom(15)
+	            .center([-0.005, 51.46]);
+        }
+
+
+        controller.enter(iD.modes.Browse());
+        pants.menuInit(this, pantsjsddm, map);
     }
-    pants.menuInit(this, pantsjsddm, map);
-    controller.enter(iD.modes.Browse());
+
+    editor.connection = function(_) {
+        if (!arguments.length) return connection;
+        connection = _;
+        return editor;
     };
 
     editor.map = function() {

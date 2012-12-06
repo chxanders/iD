@@ -9,7 +9,7 @@ iD.Map = function() {
         zoom = d3.behavior.zoom()
             .translate(projection.translate())
             .scale(projection.scale())
-            .scaleExtent([256 * Math.pow(2, 3), 256 * Math.pow(2, 24)])
+            .scaleExtent([256 * Math.pow(2, 3), 256 * Math.pow(2, 22)])
             .on('zoom', zoomPan),
         dblclickEnabled = true,
         dragEnabled = true,
@@ -25,17 +25,19 @@ iD.Map = function() {
 
                 if (!dragging) {
                     if (entity.accuracy) {
-                        var way = history.graph().entity(entity.way);
-                        history.perform(iD.actions.addWayNode(way, iD.Node(entity), entity.index));
+                        var way = history.graph().entity(entity.way),
+                            index = entity.index;
+                        entity = iD.Node(entity);
+                        history.perform(iD.actions.AddWayNode(way, entity, index));
                     }
 
                     dragging = iD.util.trueObj([entity.id].concat(
-                        _.pluck(history.graph().parents(entity.id), 'id')));
-                    history.perform(iD.actions.noop());
+                        _.pluck(history.graph().parentWays(entity.id), 'id')));
+                    history.perform(iD.actions.Noop());
                 }
 
                 var to = projection.invert([d3.event.x, d3.event.y]);
-                history.replace(iD.actions.move(entity, to));
+                history.replace(iD.actions.Move(entity, to));
 
                 redraw();
             })
@@ -52,6 +54,7 @@ iD.Map = function() {
         class_area = iD.Style.styleClasses('area'),
         class_casing = iD.Style.styleClasses('casing'),
         transformProp = iD.util.prefix() + 'transform',
+        support3d = iD.util.prefix() === 'O',
         supersurface, surface, defs, tilegroup, r, g, alength;
 
     function map() {
@@ -69,6 +72,7 @@ iD.Map = function() {
                 .attr({ x: 0, y: 0 });
 
         tilegroup = surface.append('g')
+            .attr('id', 'tile-g')
             .attr('clip-path', 'url(#clip)');
 
         r = surface.append('g')
@@ -140,12 +144,15 @@ iD.Map = function() {
     function accuracyHandles(way) {
         var handles = [];
         for (var i = 0; i < way.nodes.length - 1; i++) {
-            handles[i] = iD.Node();
-            handles[i].loc = iD.util.geo.interp(way.nodes[i].loc, way.nodes[i + 1].loc, 0.5);
-            handles[i].way = way.id;
-            handles[i].index = i + 1;
-            handles[i].accuracy = true;
-            handles[i].tags = { name: 'Improve way accuracy' };
+            if (iD.util.geo.dist(way.nodes[i].loc, way.nodes[i + 1].loc) > 0.0001) {
+                handles.push({
+                    loc: iD.util.geo.interp(way.nodes[i].loc, way.nodes[i + 1].loc, 0.5),
+                    way: way.id,
+                    index: i + 1,
+                    accuracy: true,
+                    tags: { name: 'Improve way accuracy' }
+                });
+            }
         }
         return handles;
     }
@@ -300,8 +307,13 @@ iD.Map = function() {
             if (!translateStart) translateStart = d3.event.translate.slice();
             var a = d3.event.translate,
                 b = translateStart;
-            surface.style(transformProp,
-                'translate3d(' + ~~(a[0] - b[0]) + 'px,' + ~~(a[1] - b[1]) + 'px, 0px)');
+            if (support3d) {
+                surface.style(transformProp,
+                    'translate3d(' + ~~(a[0] - b[0]) + 'px,' + ~~(a[1] - b[1]) + 'px, 0px)');
+            } else {
+                surface.style(transformProp,
+                    'translate(' + ~~(a[0] - b[0]) + 'px,' + ~~(a[1] - b[1]) + 'px)');
+            }
         } else {
             redraw();
             translateStart = null;
@@ -418,6 +430,20 @@ iD.Map = function() {
         connection = _;
         connection.on('load', connectionLoad);
         return map;
+    };
+
+    map.hint = function (_) {
+        if (_ === false) {
+            d3.select('div.inspector-wrap')
+                .style('opacity', 0)
+                .style('display', 'none');
+        } else {
+            d3.select('div.inspector-wrap')
+                .style('display', 'block')
+                .transition()
+                .style('opacity', 1)
+                .text(_);
+        }
     };
 
     map.history = function (_) {

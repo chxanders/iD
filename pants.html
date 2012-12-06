@@ -12,47 +12,72 @@
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-        <script type='text/javascript' src='../js/lib/lodash.js'></script>
-        <script type='text/javascript' src='../js/lib/jxon.js'></script>
-        <script type='text/javascript' src='../js/lib/d3.v2.min.js'></script>
-        <script type='text/javascript' src='../js/lib/d3.typeahead.js'></script>
-        <script type='text/javascript' src='../js/lib/d3.geo.tile.js'></script>
-        <script type='text/javascript' src='../js/lib/d3.size.js'></script>
-        <script type='text/javascript' src='../js/lib/d3.keybinding.js'></script>
-		
-        <script type='text/javascript' src='../js/lib/jquery-1.8.3.min.js'></script>
-        <script type="text/javascript" src="../js/lib/jquery-ui-1.9.1.custom.min.js"></script>
-        <script type="text/javascript" src="../js/lib/jquery.fileDownload.js"></script>
-        
-        <script type='text/javascript' src='../js/id/id.js'></script>
-        <script type='text/javascript' src='../js/id/taginfo.js'></script>
-        <script type='text/javascript' src='../js/id/util.js'></script>
-        <script type='text/javascript' src='../js/id/renderer/style.js'></script>
-        <script type='text/javascript' src='../js/id/renderer/background.js'></script>
+        <script src='../js/lib/jquery-1.8.3.min.js'></script>
+        <script src='../js/lib/lodash.js'></script>
+        <script src='../js/lib/d3.v2.min.js'></script>
+        <!--script src='js/lib/sha.js'></script-->
+        <!--script src='js/lib/ohauth.js'></script-->>
+        <script src='../js/lib/jxon.js'></script>
+        <script src='../js/lib/d3.typeahead.js'></script>
+        <script src='../js/lib/d3.geo.tile.js'></script>
+        <script src='../js/lib/d3.size.js'></script>
+        <script src='../js/lib/d3.keybinding.js'></script>
+        <script src='../js/lib/d3-compat.js'></script>
+        <script src='../js/lib/bootstrap-tooltip.js'></script>
 
-        <script type='text/javascript' src='../js/id/renderer/map.js'></script>
-        <script type='text/javascript' src='../js/id/renderer/hash.js'></script>
-        <script type='text/javascript' src='../js/id/renderer/markers.js'></script>
-        <script type='text/javascript' src='../js/id/ui/inspector.js'></script>
+        <script src='../js/id/id.js'></script>
+        <script src='../js/id/util.js'></script>
+        <!--script src='../js/id/oauth.js'></script-->
+        <script src='../js/id/taginfo.js'></script>
+        <script src='../js/id/renderer/style.js'></script>
+        <script src='../js/id/renderer/background.js'></script>
+        <script src='../js/id/renderer/map.js'></script>
+        <script src='../js/id/renderer/hash.js'></script>
+        <script src='../js/id/renderer/markers.js'></script>
+        <script src='../js/id/ui/inspector.js'></script>
+        <script src='../js/id/ui/modal.js'></script>
+        <script src='../js/id/ui/confirm.js'></script>
+        <script src='../js/id/ui/commit.js'></script>
+        <!--script src='../js/id/ui/loading.js'></script-->
+        <!--script src='../js/id/ui/userpanel.js'></script-->
+        <script src='../js/id/ui/layerswitcher.js'></script>
 
-        <script type='text/javascript' src='../js/id/actions/modes.js'></script>
-        <script type='text/javascript' src='../js/id/actions/actions.js'></script>
+        <script src='../js/id/actions.js'></script>
+        <script src='../js/id/actions/add_node.js'></script>
+        <script src='../js/id/actions/add_way_node.js'></script>
+        <script src='../js/id/actions/change_entity_tags.js'></script>
+        <script src="../js/id/actions/delete_node.js"></script>
+        <script src="../js/id/actions/delete_way.js"></script>
+        <script src='../js/id/actions/move.js'></script>
+        <script src='../js/id/actions/noop.js'></script>
+        <script src='../js/id/actions/remove_relation_member.js'></script>
+        <script src='../js/id/actions/remove_way_node.js'></script>
+        <script src='../js/id/actions/reverse_way.js'></script>
+        <script src='../js/id/actions/start_way.js'></script>
 
-        <script type='text/javascript' src='../js/id/controller/controller.js'></script>
+        <script src='../js/id/modes.js'></script>
+        <script src='../js/id/modes/add_area.js'></script>
+        <script src='../js/id/modes/add_place.js'></script>
+        <script src='../js/id/modes/add_road.js'></script>
+        <script src='../js/id/modes/browse.js'></script>
+        <script src='../js/id/modes/draw_area.js'></script>
+        <script src='../js/id/modes/draw_road.js'></script>
+        <script src='../js/id/modes/select.js'></script>
 
-        <script type='text/javascript' src='../js/id/format/xml.js'></script>
+        <script src='../js/id/controller/controller.js'></script>
 
-        <script type='text/javascript' src='../js/id/graph/entity.js'></script>
-        <script type='text/javascript' src='../js/id/graph/graph.js'></script>
-        <script type='text/javascript' src='../js/id/graph/history.js'></script>
-        <script type='text/javascript' src='../js/id/connection.js'></script>
-        <script type='text/javascript' src='../js/pants/pants.js'></script>
+        <!--script src='../js/id/format/format.js'></script-->
+        <!--script src='../js/id/format/geojson.js'></script-->
+        <script src='../js/id/format/xml.js'></script>
+
+        <script src='../js/id/graph/entity.js'></script>
+        <script src='../js/id/graph/graph.js'></script>
+        <script src='../js/id/graph/history.js'></script>
+        <script src='../js/id/connection.js'></script>
+        <script src='../js/pants/pants.js'></script>
     </head>
-   <body>
-        <div id="iD"></div>
-        <script>
+    <body>
+        <div id="iD"></div><script>
             var id = iD(document.getElementById('iD'));
-        </script>
-    </body>
+        </script></body>
 </html>
-

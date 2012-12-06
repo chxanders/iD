@@ -84,9 +84,9 @@ iD.Connection = function() {
     }
 
     function authenticate(callback) {
-        return oauth.authenticate(function() {
+        return oauth.authenticate(function(err, res) {
             event.auth();
-            if (callback) callback();
+            if (callback) callback(err, res);
         });
     }
 
