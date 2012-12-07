@@ -1,6 +1,6 @@
 window.iD = function(container) {
     var connection = iD.Connection()
-            .url('http://api06.dev.openstreetmap.org'),
+            .url('//'),
         history = iD.History(),
         map = iD.Map()
             .connection(connection)
@@ -57,32 +57,6 @@ window.iD = function(container) {
                 .text(function(d) { return d[1]; })
                 .on('click', function(d) { return d[2](); });
 
-        var gc = bar.append('div').attr('class', 'geocode-control');
-        gc.append('button').text('?');
-        gc
-            .on('mouseover', function() {
-                d3.select('.geocode-control input').style('display', 'inline-block');
-            })
-            .on('mouseout', function() {
-                d3.select('.geocode-control input').style('display', 'none');
-            });
-        gc.append('input')
-            .attr({
-                type: 'text',
-                placeholder: 'find a place'
-            })
-            .on('keydown', function () {
-                if (d3.event.keyCode !== 13) return;
-                d3.event.preventDefault();
-                d3.json('http://api.tiles.mapbox.com/v3/mapbox/geocode/' +
-                    encodeURIComponent(this.value) + '.json', function(err, resp) {
-                    map.center([resp.results[0][0].lon, resp.results[0][0].lat]);
-                });
-            });
-
-        this.append('div').attr('class', 'layerswitcher-control')
-            .call(iD.layerswitcher(map));
-
         this.append('div')
             .attr('class', 'inspector-wrap')
             .style('display', 'none');
@@ -100,10 +74,6 @@ window.iD = function(container) {
             })
             .on('r', function(evt, mods) {
                 controller.enter(iD.modes.AddRoad());
-            })
-            .on('z', function(evt, mods) {
-                if (mods === '⇧⌘') history.redo();
-                if (mods === '⌘') history.undo();
             });
         d3.select(document).call(keybinding);
         map.keybinding(keybinding);

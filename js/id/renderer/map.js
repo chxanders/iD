@@ -9,7 +9,7 @@ iD.Map = function() {
         zoom = d3.behavior.zoom()
             .translate(projection.translate())
             .scale(projection.scale())
-            .scaleExtent([256 * Math.pow(2, 3), 256 * Math.pow(2, 22)])
+            .scaleExtent([256 * Math.pow(2, 3), 256 * Math.pow(2, 20)])
             .on('zoom', zoomPan),
         dblclickEnabled = true,
         dragEnabled = true,
@@ -370,7 +370,7 @@ iD.Map = function() {
     };
 
     map.zoom = function(z) {
-        if (!arguments.length) {
+        if (!arguments.length || z < 0.0 || z > 20.0) {
             return Math.max(Math.log(projection.scale()) / Math.LN2 - 8, 0);
         }
         var scale = 256 * Math.pow(2, z),

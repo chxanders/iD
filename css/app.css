@@ -165,9 +165,6 @@ div.buttons-joined {
     border-left: 1px solid #808080;
     color:#000;
     display:inline-block;
-    left: 80px;
-    right:100px;
-    color:#fff;
 }
 
 #bar div.buttons-joined button:first-child {
@@ -210,19 +207,25 @@ div.buttons-joined {
     color:#fff;
 }
 
-#bar .zoombuttons {
-    border:0;
-    border-left: 1px solid #808080;
-    padding:2px 5px;
-    border-radius:3px;    
-    margin:0;	
-    position: absolute;
-    right: 0;
-    top: 0;
-    height:100%;  
-
+#bar input[type=text] {
+    width:150px;
+    height:20px;
+    border:1px solid #ccc;
+    padding:5px;
+    margin:0;
 }
 
+.zoombuttons {
+    position:absolute;
+    right:32px;
+    top:64px;
+    width:32px;
+}
+
+#bar .zoombuttons button {
+    width:40px;
+    border:1px solid #ccc;
+}
 
 #bar .zoombuttons button.zoom-in {
     border-bottom:0;
